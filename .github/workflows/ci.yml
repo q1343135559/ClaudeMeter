@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  dist-is-current:
+    # dist/ 提交进仓库供 marketplace 安装，必须和 src/ 保持同步。
+    # 这个 job 重新构建一次并比对，防止有人改了 src 却忘了跑 build。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - name: 检查 dist/ 是否已同步
+        run: |
+          if ! git diff --quiet -- dist/; then
+            echo "dist/ 与 src/ 不同步，请在本地执行 npm run build 后重新提交："
+            git diff --stat -- dist/
+            exit 1
+          fi

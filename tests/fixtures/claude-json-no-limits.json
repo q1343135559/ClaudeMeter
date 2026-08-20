@@ -1,0 +1,11 @@
+{
+  "cachedUsageUtilization": {
+    "fetchedAtMs": 1787252586361,
+    "utilization": {
+      "five_hour": { "utilization": 12, "resets_at": "2026-08-21T00:00:00+00:00" },
+      "seven_day": { "utilization": 33, "resets_at": "2026-08-22T05:00:00+00:00" },
+      "nimbus_quill": { "utilization": 99, "resets_at": null },
+      "tangelo": { "utilization": 88, "resets_at": null }
+    }
+  }
+}

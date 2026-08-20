@@ -1,0 +1,5 @@
+node_modules/
+*.log
+.DS_Store
+# 注意：dist/ 不忽略 —— marketplace 安装的是仓库快照，必须带上构建产物
+build/

@@ -1,0 +1,38 @@
+{
+  "numStartups": 42,
+  "userID": "fake-user-id-should-never-be-read",
+  "machineID": "fake-machine-id-should-never-be-read",
+  "oauthAccount": {
+    "accountUuid": "00000000-0000-0000-0000-000000000000",
+    "emailAddress": "someone@example.com",
+    "displayName": "Fake Name",
+    "organizationType": "claude_max",
+    "organizationRateLimitTier": "default_claude_max_5x"
+  },
+  "cachedUsageUtilization": {
+    "fetchedAtMs": 1787252586361,
+    "accountUuid": "00000000-0000-0000-0000-000000000000",
+    "utilization": {
+      "five_hour": { "utilization": 4, "resets_at": "2026-08-21T00:00:00.337629+00:00" },
+      "seven_day": { "utilization": 57, "resets_at": "2026-08-22T05:00:00.337650+00:00" },
+      "seven_day_opus": null,
+      "seven_day_sonnet": null,
+      "nimbus_quill": { "utilization": 0, "resets_at": null },
+      "tangelo": null,
+      "iguana_necktie": null,
+      "amber_ladder": null,
+      "extra_usage": { "is_enabled": false, "utilization": null },
+      "limits": [
+        { "kind": "session", "group": "session", "percent": 4, "severity": "normal",
+          "resets_at": "2026-08-21T00:00:00.337629+00:00", "scope": null, "is_active": false },
+        { "kind": "weekly_all", "group": "weekly", "percent": 57, "severity": "normal",
+          "resets_at": "2026-08-22T05:00:00.337650+00:00", "scope": null, "is_active": false },
+        { "kind": "weekly_scoped", "group": "weekly", "percent": 94, "severity": "critical",
+          "resets_at": "2026-08-22T05:00:00.337879+00:00",
+          "scope": { "model": { "id": null, "display_name": "Fable" }, "surface": null },
+          "is_active": true }
+      ]
+    }
+  },
+  "projects": { "/some/path": { "lastCost": 1.23 } }
+}

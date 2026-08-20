@@ -1,0 +1,24 @@
+{
+  "name": "claudemeter",
+  "version": "0.1.0",
+  "description": "Claude Code statusline showing context, 5-hour, weekly and per-model (Fable) usage",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:test": "tsc -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run build && npm run build:test",
+    "test": "node --test \"tests/*.test.js\"",
+    "demo": "npm run build && node dist/index.js --demo"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.2"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,171 @@
+# ClaudeMeter
+
+*[English](README.md) · 简体中文*
+
+Claude Code 状态栏插件：显示**上下文占用、5 小时窗口、周窗口，以及按模型的额度窗口（Fable）**。
+
+```
+◈ Opus 5 1M  …/Project/ClaudeMeter  ⎇ main  $0.42
+CTX ▓▓▓░░░░░░░ 31%  5H ▓▓░░░░░░░░ 23% ↻2h13m  WEEK ▓▓▓▓░░░░░░ 41% ↻2d23h  FABLE ▓▓▓▓▓▓▓▓▓░ 95% ↻1d9h
+```
+
+## 它解决什么问题
+
+现有的状态栏插件（包括最流行的 claude-hud）都只从 statusline 的 stdin JSON 取额度数据。
+这带来两个具体的缺口：
+
+**1. Fable 等按模型的额度永远看不到。**
+stdin 的 `rate_limits` 只有 `five_hour` 和 `seven_day` 两个窗口，**没有任何按模型拆分的字段**。
+Fable 在 Max 套餐上占用独立的周额度上限（约为周额度的 50%），但状态栏完全不显示——
+你可能在毫不知情的情况下已经用掉 95%。
+
+ClaudeMeter 改从 `~/.claude.json` 的 `cachedUsageUtilization` 读取。这是 Claude Code CLI
+自己维护的用量缓存，也就是 `/usage` 命令背后的同一份数据，里面的 `limits[]` 数组带有
+`kind: "weekly_scoped"` 的条目，模型名在 `scope.model.display_name`。
+
+**2. 周用量经常不显示。**
+claude-hud 的 `sevenDayThreshold` 默认是 80，周用量低于 80% 时整段被隐藏——这是它的设计，
+不是 bug，但表现出来就是"平时没有、快满了才冒出来"。
+**ClaudeMeter 没有这种阈值**，周用量在 0% 时也照常显示。
+
+## 安装
+
+```
+/plugin marketplace add q1343135559/ClaudeMeter
+/plugin install claudemeter@claudemeter
+/claudemeter:setup
+```
+
+`/claudemeter:setup` 会检测 node 路径、安装启动器、备份你现有的 statusline 配置
+（替换别人的 statusline 之前会先征求同意），然后写入 `settings.json`。
+装完重启 Claude Code 或执行 `/reload-plugins`。
+
+用 `/claudemeter:configure` 调整显示内容。
+
+## 各段的含义
+
+| 段 | 含义 | 数据来源 |
+|---|---|---|
+| `CTX` | 当前上下文窗口占用 | stdin `context_window` |
+| `5H` | 5 小时滚动窗口已用额度 | stdin 优先，缺失时用本地缓存 |
+| `WEEK` | 周额度已用比例 | 同上 |
+| `FABLE` 等 | 该模型的独立周额度 | 仅本地缓存 |
+| `↻2h14m` | 距该窗口重置还有多久 | — |
+| `~95%` `·22m` | 数据来自本地缓存且已超过 20 分钟未刷新，`·22m` 是实际年龄 | — |
+| `≈$25.53` | 本次会话的花费 | stdin `cost.total_cost_usd` |
+
+### 关于花费前面的 ≈
+
+Claude Code 报出的会话花费是**客户端按 API 价目表估算**的，`/clear` 开新会话就归零。
+如果你用的是 Claude.ai 订阅（Pro / Max / Team），你并不按 token 付费——
+这个数字是"这些 token 若按 API 价格计价大约值多少钱"，**不是账单**。
+
+所以 ClaudeMeter 在检测到订阅账户时会加一个 `≈` 前缀，避免被读成实际扣费。
+用 API key 的账户没有这个前缀，因为那种情况下它接近真实开销。
+不想看到这一段就把 `showCost` 设成 `false`。
+
+### 配色
+
+进度条按剩余额度分三档，已用部分着色、未用部分暗灰：
+
+| 档位 | 颜色 | 默认阈值 |
+|---|---|---|
+| 额度充足 | 绿色 | 已用 < 50% |
+| 用掉过半 | 黄色 | 已用 ≥ 50% |
+| 只剩两成 | 淡红色 | 已用 ≥ 80% |
+
+淡红用的是 bright red（ANSI 91）而不是 red（31）——后者在深色终端上偏暗发褐，
+夹在一排彩色进度条中间反而不够醒目。
+
+Anthropic 会随额度数据下发自己的严重度判定（`normal` / `warning` / `critical`）。
+ClaudeMeter 取**服务端判定与本地阈值中更严重的那个**：服务端可以把某个窗口主动升级成告警
+（它知道你账户的真实档位），但它标成 `normal` 不会把本地阈值压回绿色——
+否则"过半变黄"这条规则在大多数时候都不会生效。
+
+阈值和颜色都可以在配置里改，上下文条有独立的一套阈值（`contextWarning` / `contextCritical`），
+因为它逼近上限的后果是触发压缩，与额度耗尽不是一回事。
+
+### 关于陈旧标记
+
+`5H` 和 `WEEK` 走 stdin 时是实时的（每次模型响应后刷新）。
+但按模型的窗口只存在于本地缓存里，而 Claude Code 刷新这份缓存的间隔实测在 **10–20 分钟**。
+所以 ClaudeMeter 会在数据超过 20 分钟未刷新时标上 `~` 和实际年龄，让你知道这个数字有滞后。
+
+想让年龄始终可见，把 `staleWarnMs` 设成 `0`；不想看到年龄，把 `showStaleAge` 设成 `false`。
+
+## 数据与隐私
+
+ClaudeMeter **只读三样东西，全部在本地**：
+
+1. Claude Code 通过 stdin 传进来的会话 JSON
+2. `~/.claude.json` 里的 `cachedUsageUtilization`，以及 `oauthAccount` 里的两个非身份字段
+   `organizationType`（判断是否订阅账户，决定花费要不要加 `≈`）与 `organizationRateLimitTier`（套餐档位）
+3. 当前目录向上最近的 `.git/HEAD`（用于显示分支名）
+
+明确**不做**的事：
+
+- **不发任何网络请求。** 特别是不调用 `api.anthropic.com/api/oauth/usage` —— 那个接口的响应
+  正是 `cachedUsageUtilization` 缓存的内容，本地已经有了；而且它限流极其严重，
+  状态栏这种高频调用者会很快被 429，反过来影响你真实会话的可用性。
+- **不读取任何凭证。** 不碰 `~/.claude/.credentials.json`，不碰 macOS Keychain。
+- **不起子进程。** 分支名靠直接读 `.git/HEAD` 得到，不 fork `git`。
+- **不外传任何东西。** `~/.claude.json` 里同时存有邮箱、账号 UUID、机器 ID 和全部项目历史；
+  本插件只提取上面列出的白名单字段，其余一概不读出。测试里有一条专门断言返回结构中
+  不含邮箱、UUID、机器 ID 与项目历史。
+
+`dist/index.js` **不做压缩混淆**，就是为了让你能直接读一遍确认上面这些说法。
+
+临时关闭：`CLAUDEMETER_DISABLE=1 claude`。
+
+## 配置
+
+配置文件：`{CLAUDE_CONFIG_DIR:-~/.claude}/claudemeter/config.json`。
+不存在、或写坏了，都会安静地回退到默认值——**配置错误不会让状态栏消失**。
+完整配置项见 `/claudemeter:configure` 的输出，或 [`commands/configure.md`](commands/configure.md)。
+
+常用的几个：
+
+```jsonc
+{
+  "scopedFilter": ["Fable"],  // 只显示 Fable 的周额度
+  "barWidth": 0,              // 不画进度条，只留百分比数字
+  "showLine1": false,         // 只保留用量行
+  "staleWarnMs": 0,           // 缓存数据的年龄始终可见
+  "thresholds": { "warning": 60, "critical": 85 },   // 调整变黄/变红的时机
+  "colors": { "critical": "red", "barEmpty": "none" } // 换配色
+}
+```
+
+## 看不到用量段怎么办
+
+按可能性排序：
+
+1. **不是 Claude.ai 订阅用户**（用 API key，或 Bedrock / Vertex）——这类账户没有订阅额度窗口，
+   `rate_limits` 和 `cachedUsageUtilization` 都不会存在。
+2. **Claude Code 还没写过用量缓存** —— 在任意会话里执行一次 `/usage` 即可。
+3. **缓存超过 6 小时** —— 超过 `staleMaxMs` 的数据会被丢弃而不是显示一个过期数字。同样执行一次 `/usage`。
+
+另外，本地缓存里已经**跨过重置时刻**的窗口也会被主动丢弃：缓存可能陈旧 10 分钟以上，
+经常正好跨过 5 小时窗口的重置点，此时那个百分比是可证伪的错误，显示出来比不显示更糟。
+
+## 开发
+
+```bash
+npm install
+npm run build        # esbuild 打包成单文件 dist/index.js
+npm test             # node --test，64 个用例
+npm run demo         # 用内置假数据渲染一次
+```
+
+本地开发时不必反复安装插件，直接指向仓库里的产物：
+
+```bash
+CLAUDEMETER_DIST=$PWD/dist/index.js node bin/launcher.mjs --demo
+```
+
+零运行时依赖，只用 `node:` 内置模块。`dist/` 会提交进仓库，因为 marketplace 安装的是
+仓库快照，安装方不会执行 `npm install`。
+
+## License
+
+MIT

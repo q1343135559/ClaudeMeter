@@ -1,0 +1,17 @@
+{
+  "name": "claudemeter",
+  "owner": { "name": "huangjiajun", "url": "https://github.com/q1343135559" },
+  "metadata": {
+    "description": "ClaudeMeter — Claude Code statusline with per-model usage windows",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claudemeter",
+      "source": "./",
+      "description": "Shows context, 5-hour, weekly and per-model (Fable) usage in your statusline. Weekly usage is always visible, and per-model windows come from Claude Code's own local usage cache — no network calls, no OAuth token access.",
+      "category": "monitoring",
+      "tags": ["statusline", "usage", "rate-limit", "fable", "monitoring"]
+    }
+  ]
+}
