@@ -40,3 +40,21 @@ jobs:
             git diff --stat -- plugin/dist/
             exit 1
           fi
+
+  version-bumped:
+    # 拦截本仓库唯一一个"完全没有反馈"的错误：改了会分发给用户的 plugin/ 却没升版本号。
+    # Claude Code 用 plugin.json 的 version 作为更新判定的缓存键，版本号没变时
+    # 已安装的用户永远收不到改动，而构建、测试、推送全都是绿的。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 改动了 plugin/ 就必须提升版本号
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          node scripts/check-version-bump.mjs "$BASE" HEAD

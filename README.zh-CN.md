@@ -172,9 +172,15 @@ npm run build                  # 让 dist 与新版本号一致
 git commit -am "..." && git push
 ```
 
-真正起作用的是 `plugin/.claude-plugin/plugin.json` 里的 `version`：**Claude Code 只有在这个字段
-变化时才会把更新推给已安装的用户**。改了代码却没改它，所有人都收不到，而且不会有任何提示。
-`npm run bump` 把三个文件一起改掉，就是为了堵住这个坑。
+真正起作用的是 `plugin/.claude-plugin/plugin.json` 里的 `version`。Claude Code 拿它当更新判定的
+缓存键，版本号没变就意味着已安装的用户永远收不到这次改动，`/plugin update` 还会回报
+"already at the latest version" —— 而构建是绿的、推送是成功的、没有任何报错。
+另外两个版本字段只是信息性的：`package.json` 从不发布到 npm，`marketplace.json` 里那个是
+**市场清单**的版本而非插件的版本。
+
+两个 CI job 让这种错误发不出去：`dist-is-current` 会重新构建并在 `plugin/dist/` 与 `src/`
+不同步时失败；`version-bumped` 会在 `plugin/` 有改动而版本号没动时失败。
+确实想跳过第二个时，在提交信息里写 `[skip version check]`。
 
 用户这样拿到新版本：
 

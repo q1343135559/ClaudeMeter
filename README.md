@@ -239,10 +239,17 @@ npm run build                  # rebuild so dist matches the new version
 git commit -am "..." && git push
 ```
 
-The version in `plugin/.claude-plugin/plugin.json` is what matters: Claude Code only pushes an
-update to installed users when that field changes. Ship code without bumping it and nobody
-receives the change, silently. `npm run bump` updates all three files together so that cannot
-happen.
+The version in `plugin/.claude-plugin/plugin.json` is the one that matters. Claude Code uses it as
+the cache key for update checks, so leaving it unchanged means installed users never receive the
+change and `/plugin update` tells them they are "already at the latest version" — with a green
+build, a successful push, and no error anywhere. The other two version fields are informational:
+`package.json` is never published to npm, and `marketplace.json`'s is the *marketplace manifest's*
+version, not the plugin's.
+
+Two CI jobs make that failure impossible to ship: `dist-is-current` rebuilds and fails if
+`plugin/dist/` drifted from `src/`, and `version-bumped` fails if anything under `plugin/` changed
+without the version changing. Put `[skip version check]` in a commit message to override the
+second one deliberately.
 
 Users pick up the new version with:
 
