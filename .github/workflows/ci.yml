@@ -23,7 +23,7 @@ jobs:
       - run: npm test
 
   dist-is-current:
-    # dist/ 提交进仓库供 marketplace 安装，必须和 src/ 保持同步。
+    # plugin/dist/ 提交进仓库供 marketplace 安装，必须和 src/ 保持同步。
     # 这个 job 重新构建一次并比对，防止有人改了 src 却忘了跑 build。
     runs-on: ubuntu-latest
     steps:
@@ -33,10 +33,10 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
-      - name: 检查 dist/ 是否已同步
+      - name: 检查 plugin/dist/ 是否已同步
         run: |
-          if ! git diff --quiet -- dist/; then
-            echo "dist/ 与 src/ 不同步，请在本地执行 npm run build 后重新提交："
-            git diff --stat -- dist/
+          if ! git diff --quiet -- plugin/dist/; then
+            echo "plugin/dist/ 与 src/ 不同步，请在本地执行 npm run build 后重新提交："
+            git diff --stat -- plugin/dist/
             exit 1
           fi

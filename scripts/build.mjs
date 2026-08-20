@@ -1,11 +1,15 @@
 /**
  * ClaudeMeter 构建脚本。
  *
- * 用 esbuild 把 src/index.ts 打包成单个 ESM 文件 dist/index.js。
+ * 用 esbuild 把 src/index.ts 打包成单个 ESM 文件 plugin/dist/index.js。
  * 之所以要打包成单文件：statusline 每次渲染都是一个全新的 node 进程，
  * 单文件可以省掉多次模块解析的磁盘 IO，让冷启动尽可能短。
- * 产物零运行时依赖，只用 node: 内置模块，因此 dist 可以直接提交进仓库
- * 供 marketplace 安装使用（安装方不会执行 npm install）。
+ * 产物零运行时依赖，只用 node: 内置模块，因此可以直接提交进仓库供 marketplace 安装使用。
+ *
+ * 输出目录刻意放在 plugin/ 里而不是仓库根：marketplace 安装时复制的是 plugin/ 这一个子目录，
+ * 而 Claude Code 会对复制过来的目录自动执行 npm install（只要里面有 package.json + lockfile）。
+ * 把构建工具链留在仓库根、让 plugin/ 里不含 package.json，用户安装时就不会白装
+ * 几十 MB 的 esbuild 与 typescript —— 它们只在开发时用得到。
  */
 import { build } from 'esbuild';
 import { rmSync, mkdirSync } from 'node:fs';
@@ -13,10 +17,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outfile = join(root, 'dist', 'index.js');
+const outfile = join(root, 'plugin', 'dist', 'index.js');
 
-rmSync(join(root, 'dist'), { recursive: true, force: true });
-mkdirSync(join(root, 'dist'), { recursive: true });
+rmSync(join(root, 'plugin', 'dist'), { recursive: true, force: true });
+mkdirSync(join(root, 'plugin', 'dist'), { recursive: true });
 
 await build({
   entryPoints: [join(root, 'src', 'index.ts')],

@@ -113,7 +113,7 @@ ClaudeMeter **只读三样东西，全部在本地**：
   本插件只提取上面列出的白名单字段，其余一概不读出。测试里有一条专门断言返回结构中
   不含邮箱、UUID、机器 ID 与项目历史。
 
-`dist/index.js` **不做压缩混淆**，就是为了让你能直接读一遍确认上面这些说法。
+`plugin/dist/index.js` **不做压缩混淆**，就是为了让你能直接读一遍确认上面这些说法。
 
 临时关闭：`CLAUDEMETER_DISABLE=1 claude`。
 
@@ -152,7 +152,7 @@ ClaudeMeter **只读三样东西，全部在本地**：
 
 ```bash
 npm install
-npm run build        # esbuild 打包成单文件 dist/index.js
+npm run build        # esbuild 打包成单文件 plugin/dist/index.js
 npm test             # node --test，64 个用例
 npm run demo         # 用内置假数据渲染一次
 ```
@@ -160,11 +160,27 @@ npm run demo         # 用内置假数据渲染一次
 本地开发时不必反复安装插件，直接指向仓库里的产物：
 
 ```bash
-CLAUDEMETER_DIST=$PWD/dist/index.js node bin/launcher.mjs --demo
+CLAUDEMETER_DIST=$PWD/plugin/dist/index.js node plugin/bin/launcher.mjs --demo
 ```
 
-零运行时依赖，只用 `node:` 内置模块。`dist/` 会提交进仓库，因为 marketplace 安装的是
-仓库快照，安装方不会执行 `npm install`。
+### 仓库结构
+
+```
+.claude-plugin/marketplace.json   市场目录
+plugin/                           ← 安装时只复制这一个目录
+  .claude-plugin/plugin.json
+  commands/                       /claudemeter:setup 与 :configure
+  bin/launcher.mjs                版本发现启动器
+  dist/index.js                   已提交的构建产物
+src/ tests/ scripts/              构建与测试，不随插件分发
+```
+
+构建工具链刻意留在仓库根目录：Claude Code 会对安装后的插件目录自动执行 `npm install`
+（只要里面有 `package.json` 和 lockfile），把它挡在 `plugin/` 之外，安装体积就从 35MB
+降到约 100KB —— 那 35MB 是 esbuild 和 typescript，运行时一个字节都用不到。
+
+零运行时依赖，只用 `node:` 内置模块。`plugin/dist/` 会提交进仓库，因为 marketplace
+安装的是仓库快照。
 
 ## License
 

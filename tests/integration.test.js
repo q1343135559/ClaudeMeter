@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const ENTRY = join(ROOT, 'dist', 'index.js');
+const ENTRY = join(ROOT, 'plugin', 'dist', 'index.js');
 const FIXTURES = join(ROOT, 'tests', 'fixtures');
 
 /**

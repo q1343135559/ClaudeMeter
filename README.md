@@ -151,7 +151,7 @@ What it deliberately does **not** do:
   machine ID, and full project history. ClaudeMeter extracts only the allowlisted fields above;
   a test asserts that the returned structure contains none of the rest.
 
-`dist/index.js` is **not minified**, specifically so you can read it and confirm the above.
+`plugin/dist/index.js` is **not minified**, specifically so you can read it and confirm the above.
 
 Disable it for a single session with `CLAUDEMETER_DISABLE=1 claude`.
 
@@ -219,7 +219,7 @@ versions ClaudeMeter falls back to 120 columns. Set `maxWidth` in the config to 
 
 ```bash
 npm install
-npm run build     # esbuild bundle -> dist/index.js
+npm run build     # esbuild bundle -> plugin/dist/index.js
 npm test          # node --test, 64 cases
 npm run demo      # render built-in sample data
 ```
@@ -227,12 +227,28 @@ npm run demo      # render built-in sample data
 To iterate without reinstalling the plugin, point the launcher at your working tree:
 
 ```bash
-CLAUDEMETER_DIST=$PWD/dist/index.js node bin/launcher.mjs --demo
+CLAUDEMETER_DIST=$PWD/plugin/dist/index.js node plugin/bin/launcher.mjs --demo
 ```
 
-Zero runtime dependencies — `node:` builtins only. TypeScript and esbuild are dev dependencies.
-`dist/` is committed because marketplace installs copy the repository as-is and never run
-`npm install`; CI rebuilds and fails if it has drifted from `src/`.
+### Repository layout
+
+```
+.claude-plugin/marketplace.json   marketplace catalog
+plugin/                           ← the only directory an install copies
+  .claude-plugin/plugin.json
+  commands/                       /claudemeter:setup and :configure
+  bin/launcher.mjs                version-resolving launcher
+  dist/index.js                   committed build output
+src/ tests/ scripts/              build and test tooling, never shipped
+```
+
+The build toolchain deliberately stays at the repository root. Claude Code runs `npm install`
+inside any installed plugin directory that contains a `package.json` and a lockfile, so keeping
+`package.json` out of `plugin/` means installs are about 100 KB instead of pulling 35 MB of
+esbuild and TypeScript that nothing uses at runtime.
+
+Zero runtime dependencies — `node:` builtins only. `plugin/dist/` is committed because marketplace
+installs copy the repository as-is; CI rebuilds and fails if it has drifted from `src/`.
 
 Code comments and docstrings are written in Chinese, per the repository's convention. User-facing
 documentation is in English.

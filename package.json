@@ -1,6 +1,6 @@
 {
   "name": "claudemeter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Code statusline showing context, 5-hour, weekly and per-model (Fable) usage",
   "type": "module",
   "private": true,
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build && npm run build:test",
     "test": "node scripts/run-tests.mjs",
-    "demo": "npm run build && node dist/index.js --demo"
+    "demo": "npm run build && node plugin/dist/index.js --demo"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

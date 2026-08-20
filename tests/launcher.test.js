@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const LAUNCHER = join(ROOT, 'bin', 'launcher.mjs');
+const LAUNCHER = join(ROOT, 'plugin', 'bin', 'launcher.mjs');
 
 /** 在临时配置目录里伪造若干个已安装版本，每个版本打印自己的版本号。 */
 function fakeInstalls(configDir, marketplace, versions) {
