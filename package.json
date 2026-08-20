@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build && npm run build:test",
     "test": "node scripts/run-tests.mjs",
-    "demo": "npm run build && node plugin/dist/index.js --demo"
+    "demo": "npm run build && node plugin/dist/index.js --demo",
+    "bump": "node scripts/bump-version.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

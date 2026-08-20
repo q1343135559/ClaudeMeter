@@ -230,6 +230,29 @@ To iterate without reinstalling the plugin, point the launcher at your working t
 CLAUDEMETER_DIST=$PWD/plugin/dist/index.js node plugin/bin/launcher.mjs --demo
 ```
 
+### Releasing a change
+
+```bash
+npm run build && npm test      # rebuild plugin/dist and verify
+npm run bump -- 0.2.1          # bump all three version files at once
+npm run build                  # rebuild so dist matches the new version
+git commit -am "..." && git push
+```
+
+The version in `plugin/.claude-plugin/plugin.json` is what matters: Claude Code only pushes an
+update to installed users when that field changes. Ship code without bumping it and nobody
+receives the change, silently. `npm run bump` updates all three files together so that cannot
+happen.
+
+Users pick up the new version with:
+
+```
+/plugin marketplace update claudemeter
+```
+
+or from a shell, `claude plugin marketplace update claudemeter`. Third-party marketplaces have
+auto-update off by default; users can turn it on under the **Marketplaces** tab of `/plugin`.
+
 ### Repository layout
 
 ```

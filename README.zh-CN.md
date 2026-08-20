@@ -163,6 +163,28 @@ npm run demo         # 用内置假数据渲染一次
 CLAUDEMETER_DIST=$PWD/plugin/dist/index.js node plugin/bin/launcher.mjs --demo
 ```
 
+### 发布一次改动
+
+```bash
+npm run build && npm test      # 重新构建 plugin/dist 并验证
+npm run bump -- 0.2.1          # 一次性改掉三个文件里的版本号
+npm run build                  # 让 dist 与新版本号一致
+git commit -am "..." && git push
+```
+
+真正起作用的是 `plugin/.claude-plugin/plugin.json` 里的 `version`：**Claude Code 只有在这个字段
+变化时才会把更新推给已安装的用户**。改了代码却没改它，所有人都收不到，而且不会有任何提示。
+`npm run bump` 把三个文件一起改掉，就是为了堵住这个坑。
+
+用户这样拿到新版本：
+
+```
+/plugin marketplace update claudemeter
+```
+
+或在 shell 里 `claude plugin marketplace update claudemeter`。第三方市场的自动更新默认是**关闭**的，
+用户可以在 `/plugin` 的 **Marketplaces** 标签页里打开。
+
 ### 仓库结构
 
 ```
