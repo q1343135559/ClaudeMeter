@@ -106,13 +106,22 @@ context triggers compaction rather than a rate limit.
 
 ### Freshness, and the `~` marker
 
-`5H` and `WEEK` come from stdin whenever it carries them, which means they refresh on every model
-response. Per-model windows exist only in the local cache, and Claude Code refreshes that cache on
-its own schedule — measured at **10 to 20 minutes** between refreshes.
+`5H` and `WEEK` ride along on the rate-limit headers of every API response, so whenever stdin
+carries them they are as current as your last message. Per-model windows are not in those headers.
+They only exist in the local cache, which Claude Code refills by calling the usage endpoint on its
+own schedule.
 
-So ClaudeMeter marks any cached value older than 20 minutes with a `~` prefix and its actual age.
-It does not poll, spawn a background refresher, or call the API to work around this; it tells you
-the number lags instead of pretending otherwise.
+That schedule is not a fixed timer. Sampling this machine produced gaps of about 5 minutes,
+10 minutes, and one stretch past 17 minutes — it appears to refresh when the cache has aged beyond
+a short TTL *and* something in the session prompts a check, so an idle session drifts further.
+
+ClaudeMeter therefore marks any cached value older than 20 minutes with a `~` prefix and its actual
+age. The threshold sits above the normal range on purpose: the marker stays quiet during ordinary
+use and speaks up when you return to a session that sat idle — precisely when the number is most
+likely to be out of date. ClaudeMeter does not poll, spawn a background refresher, or call the API
+to paper over the lag; it tells you the number is behind instead.
+
+To force a refresh, run `/usage` in any session — that fetches fresh data and rewrites the cache.
 
 Set `staleWarnMs` to `0` to always see the age, or `showStaleAge` to `false` to never see it.
 
