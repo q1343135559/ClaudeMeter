@@ -373,7 +373,7 @@ var DEFAULT_CONFIG = {
   // 充足=绿、过半=黄、只剩两成=淡红
   thresholds: { warning: 50, critical: 80, contextWarning: 50, contextCritical: 80 },
   staleWarnMs: 12e5,
-  staleMaxMs: 216e5,
+  staleMaxMs: 864e5,
   showStaleAge: true,
   showResetCountdown: true,
   colors: {

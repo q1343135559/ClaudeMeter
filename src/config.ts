@@ -60,7 +60,18 @@ export interface Config {
    * 阈值定得比这更短会导致标记长期常亮，反而失去提示意义。设为 0 可让年龄始终可见。
    */
   staleWarnMs: number;
-  /** 超过这个年龄的缓存数据直接不再显示（毫秒）。 */
+  /**
+   * 超过这个年龄的缓存数据直接不再显示（毫秒）。
+   *
+   * 这只是兜底。真正精确的丢弃判据是"窗口的重置时刻已经过去"——那种情况下缓存里的
+   * 百分比是可证伪的错误，无论它多新。本项只负责拦截"旧到连大致参考价值都没有"的数据。
+   *
+   * 默认 24 小时而不是更短：本地缓存是活动驱动刷新的，人离开一晚上再回来，
+   * 缓存轻易就有十几个小时。此时周窗口（以及按模型的周窗口）的重置时刻通常还在未来，
+   * 显示 `~95% ·14h` 是诚实且有用的，直接让整段消失反而更糟。
+   * 对 5 小时窗口本项则是冗余的：任何超过 5 小时的缓存，其 resets_at 必然已经过去，
+   * 早就被上面那条精确规则拦掉了。
+   */
   staleMaxMs: number;
   /** 是否在陈旧数据后面追加年龄标记。 */
   showStaleAge: boolean;
@@ -107,7 +118,7 @@ export const DEFAULT_CONFIG: Config = {
   // 充足=绿、过半=黄、只剩两成=淡红
   thresholds: { warning: 50, critical: 80, contextWarning: 50, contextCritical: 80 },
   staleWarnMs: 1_200_000,
-  staleMaxMs: 21_600_000,
+  staleMaxMs: 86_400_000,
   showStaleAge: true,
   showResetCountdown: true,
   colors: {

@@ -84,7 +84,12 @@ defaults silently — so if nothing appears to have changed, check the JSON for 
     "contextCritical": 80     // which is a different failure mode from a rate limit
   },
   "staleWarnMs": 1200000,     // cached data older than 20 min is marked as approximate
-  "staleMaxMs": 21600000,     // cached data older than 6 h is dropped rather than shown
+  "staleMaxMs": 86400000,     // cached data older than 24 h is dropped rather than shown.
+                              // A backstop only: a window whose reset time has already passed is
+                              // dropped regardless of age, because its percentage is then provably
+                              // wrong. Keep this generous — the cache refreshes only while a
+                              // session is active, so it is routinely hours old after time away,
+                              // and an aged weekly reading still beats no segment at all.
   "showStaleAge": true,       // append the actual age, e.g. ·8m
   "showResetCountdown": true, // show ↻2h14m reset countdowns
   "colors": {

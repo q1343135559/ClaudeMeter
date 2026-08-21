@@ -205,12 +205,17 @@ rather than the 41% `WEEK` that happened to come first.
 1. You are not on a Claude.ai subscription — API-key, Bedrock, and Vertex accounts have no
    subscription quota windows, so neither `rate_limits` nor `cachedUsageUtilization` exists.
 2. Claude Code has not written its usage cache yet. Run `/usage` once in any session.
-3. The cache is more than 6 hours old (`staleMaxMs`), so it was discarded rather than displayed
-   as a stale number. Run `/usage` once.
+3. The cache is more than 24 hours old (`staleMaxMs`), so it was discarded rather than displayed
+   as an ancient number. Run `/usage` once.
 
-**A window disappeared.** Cached windows whose reset time has already passed are dropped on
-purpose. The cache can lag 10+ minutes and routinely straddles a 5-hour reset, at which point the
-cached percentage is provably wrong — showing nothing beats showing a number you know is stale.
+**A window disappeared.** A cached window whose reset time has already passed is dropped on
+purpose: at that point the cached percentage is *provably* wrong, not merely old, and showing
+nothing beats showing a number you know is meaningless. This is why the cache lagging past a
+5-hour reset removes `5H` rather than freezing it.
+
+Age alone does not remove a window. `staleMaxMs` is a 24-hour backstop for genuinely ancient data,
+deliberately set well above the lag you accumulate while away — a weekly window that still resets
+tomorrow is worth showing as `~95% ·14h` even when the reading is hours old.
 
 **The statusline vanished entirely.** Confirm the launcher can find an install:
 
