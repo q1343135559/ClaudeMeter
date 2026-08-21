@@ -183,6 +183,9 @@ npm run build && npm test      # 重新构建 plugin/dist 并验证
 npm run bump -- 0.2.1          # 一次性改掉三个文件里的版本号
 npm run build                  # 让 dist 与新版本号一致
 git commit -am "..." && git push
+claude plugin tag plugin       # 可选：为这次发布打 tag，同时校验
+                               # plugin.json 与 marketplace 条目的版本一致
+git push origin refs/tags/claudemeter--v0.2.1
 ```
 
 真正起作用的是 `plugin/.claude-plugin/plugin.json` 里的 `version`。Claude Code 拿它当更新判定的
@@ -198,11 +201,17 @@ git commit -am "..." && git push
 用户这样拿到新版本：
 
 ```
-/plugin marketplace update claudemeter
+/plugin update claudemeter@claudemeter
 ```
 
-或在 shell 里 `claude plugin marketplace update claudemeter`。第三方市场的自动更新默认是**关闭**的，
-用户可以在 `/plugin` 的 **Marketplaces** 标签页里打开。
+或在 shell 里 `claude plugin update claudemeter@claudemeter`。
+注意 **`/plugin marketplace update` 只刷新目录，不会安装新版本**。
+
+状态栏在下一次渲染时就会切过去（启动器在运行时挑版本号最高的安装），
+插件的斜杠命令则需要重启或 `/reload-plugins`。
+
+第三方市场的自动更新默认是**关闭**的，用户可以在 `/plugin` 的 **Marketplaces** 标签页里打开，
+打开后就不必手动执行上面的命令了。
 
 ### 仓库结构
 

@@ -251,6 +251,9 @@ npm run build && npm test      # rebuild plugin/dist and verify
 npm run bump -- 0.2.1          # bump all three version files at once
 npm run build                  # rebuild so dist matches the new version
 git commit -am "..." && git push
+claude plugin tag plugin       # optional: tag the release, checking that
+                               # plugin.json and the marketplace entry agree
+git push origin refs/tags/claudemeter--v0.2.1
 ```
 
 The version in `plugin/.claude-plugin/plugin.json` is the one that matters. Claude Code uses it as
@@ -268,11 +271,17 @@ second one deliberately.
 Users pick up the new version with:
 
 ```
-/plugin marketplace update claudemeter
+/plugin update claudemeter@claudemeter
 ```
 
-or from a shell, `claude plugin marketplace update claudemeter`. Third-party marketplaces have
-auto-update off by default; users can turn it on under the **Marketplaces** tab of `/plugin`.
+or from a shell, `claude plugin update claudemeter@claudemeter`. Note that
+`/plugin marketplace update` only refreshes the catalog — it does not install the new version.
+
+The status line switches over on its next render, because the launcher resolves the highest
+installed version at runtime. The plugin's slash commands need a restart or `/reload-plugins`.
+
+Third-party marketplaces have auto-update off by default; users can turn it on under the
+**Marketplaces** tab of `/plugin` to skip the manual step entirely.
 
 ### Repository layout
 
