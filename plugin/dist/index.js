@@ -107,16 +107,23 @@ function isVisible(win, config) {
   }
   return config.showUnknownWindows;
 }
-function isCacheWindowExpired(win, config, now) {
-  if (win.source !== "cache") return false;
-  if (win.ageMs !== null && win.ageMs > config.staleMaxMs) return true;
-  if (win.resetAt !== null && win.resetAt.getTime() <= now) return true;
-  return false;
+function judgeCacheWindow(win, config, now) {
+  if (win.source !== "cache") return "keep";
+  if (win.ageMs !== null && win.ageMs > config.staleMaxMs) return "drop";
+  if (win.resetAt !== null && win.resetAt.getTime() <= now) {
+    return win.key.startsWith("scoped:") ? "rollover" : "drop";
+  }
+  return "keep";
 }
 function mergeWindows(stdin, snapshot, config, now) {
   const byKey = /* @__PURE__ */ new Map();
   for (const win of snapshot?.windows ?? []) {
-    if (isCacheWindowExpired(win, config, now)) continue;
+    const verdict = judgeCacheWindow(win, config, now);
+    if (verdict === "drop") continue;
+    if (verdict === "rollover") {
+      byKey.set(win.key, { ...win, percent: null, severity: null, resetAt: null });
+      continue;
+    }
     byKey.set(win.key, win);
   }
   const stdinFive = fromStdinWindow(stdin?.rate_limits?.five_hour, "session", config.labels.fiveHour);
@@ -691,14 +698,14 @@ function autoBarWidth(columns) {
   return 0;
 }
 function renderWindow(win, config, variant, now) {
-  const color = levelColor(win.percent, win.severity, config, config.colors.usage);
+  const color = win.percent === null ? config.colors.label : levelColor(win.percent, win.severity, config, config.colors.usage);
   const parts = [paint(win.label, config.colors.label)];
   if (variant.barWidth > 0) {
-    const bar = splitBar(win.percent, variant.barWidth, config);
+    const bar = splitBar(win.percent ?? 0, variant.barWidth, config);
     parts.push(paint(bar.filled, color) + paint(bar.empty, config.colors.barEmpty));
   }
   const isStale = win.source === "cache" && win.ageMs !== null && win.ageMs > config.staleWarnMs;
-  parts.push(paint((isStale ? "~" : "") + win.percent + "%", color));
+  parts.push(paint(win.percent === null ? "?" : (isStale ? "~" : "") + win.percent + "%", color));
   if (variant.countdown && config.showResetCountdown && win.resetAt) {
     const remaining = formatDuration(win.resetAt.getTime() - now);
     if (remaining) parts.push(paint("\u21BB" + remaining, config.colors.label));
@@ -713,7 +720,7 @@ function selectWindows(windows, max) {
   if (max >= windows.length) return windows;
   const rank = (win) => {
     const severityBoost = win.severity === "critical" ? 200 : win.severity === "warning" ? 100 : 0;
-    return severityBoost + win.percent;
+    return severityBoost + (win.percent ?? 0);
   };
   const keep = new Set(
     [...windows].sort((a, b) => rank(b) - rank(a)).slice(0, max)

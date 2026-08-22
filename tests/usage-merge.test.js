@@ -152,6 +152,38 @@ test('5 小时窗口不需要靠年龄兜底：超时的缓存必然已跨过重
   assert.equal(windows.length, 0);
 });
 
+test('跨过重置点的按模型窗口转为 ? 占位而不是消失（周重置后 FABLE 无声消失的回归用例）', () => {
+  // 真实场景：Claude Code 的用量缓存只在 /usage 等入口被动刷新。周重置点（如周六 13:00）
+  // 过后缓存迟迟不更新时，Fable 的旧读数（96%）已作废，但窗口本身依然存在 ——
+  // 它没有 stdin 兜底，直接丢弃会让 FABLE 从状态栏无声消失，可能一连几天。
+  const ageMs = 21 * HOUR;
+  const windows = mergeWindows(null, snapshot([
+    { key: 'scoped:FABLE', label: 'FABLE', percent: 96, resetAt: new Date(NOW - 3 * HOUR),
+      severity: 'critical' },
+  ], ageMs), DEFAULT_CONFIG, NOW);
+
+  const fable = windows.find((w) => w.key === 'scoped:FABLE');
+  assert.ok(fable, '窗口必须保留为占位，不能消失');
+  assert.equal(fable.percent, null, '旧百分比是可证伪的错误，必须清空');
+  assert.equal(fable.severity, null, '旧 severity 同样作废，不能把 ? 染成红色');
+  assert.equal(fable.resetAt, null, '下一次重置时刻未知，不臆造');
+  assert.equal(fable.ageMs, ageMs, '年龄保留，供渲染层标注数据有多旧');
+});
+
+test('跨过重置点的按模型窗口超过 staleMaxMs 后仍然彻底丢弃', () => {
+  const windows = mergeWindows(null, snapshot([
+    { key: 'scoped:FABLE', label: 'FABLE', percent: 96, resetAt: new Date(NOW - 3 * HOUR) },
+  ], 25 * HOUR), DEFAULT_CONFIG, NOW);
+  assert.equal(windows.length, 0, '兜底阈值之外连占位也不显示');
+});
+
+test('跨过重置点的 5H / WEEK 窗口依旧丢弃，不做占位（它们有 stdin 实时兜底）', () => {
+  const windows = mergeWindows(null, snapshot([
+    { key: 'weekly', label: 'WEEK', percent: 63, resetAt: new Date(NOW - HOUR) },
+  ]), DEFAULT_CONFIG, NOW);
+  assert.equal(windows.length, 0);
+});
+
 test('旧到超过 24 小时才真正丢弃', () => {
   const stillShown = mergeWindows(null, snapshot([
     { key: 'weekly', label: 'WEEK', percent: 60, resetAt: new Date(NOW + 3 * 24 * HOUR) },

@@ -1,6 +1,6 @@
 {
   "name": "claudemeter",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Claude Code statusline showing context, 5-hour, weekly and per-model (Fable) usage",
   "type": "module",
   "private": true,

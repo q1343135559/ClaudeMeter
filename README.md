@@ -208,10 +208,12 @@ rather than the 41% `WEEK` that happened to come first.
 3. The cache is more than 24 hours old (`staleMaxMs`), so it was discarded rather than displayed
    as an ancient number. Run `/usage` once.
 
-**A window disappeared.** A cached window whose reset time has already passed is dropped on
-purpose: at that point the cached percentage is *provably* wrong, not merely old, and showing
-nothing beats showing a number you know is meaningless. This is why the cache lagging past a
-5-hour reset removes `5H` rather than freezing it.
+**A window disappeared.** A cached window whose reset time has already passed never shows its old
+percentage: at that point the number is *provably* wrong, not merely old. For `5H` / `WEEK` the
+window is simply dropped — stdin supplies a live value anyway. Per-model windows (`FABLE`) have no
+other source, so instead of vanishing they render a `?` placeholder (e.g. `FABLE ░░░░░░ ? ·21h`)
+meaning "the window has reset; no fresh reading yet". Run `/usage` once to refresh the cache and
+the percentage comes back.
 
 Age alone does not remove a window. `staleMaxMs` is a 24-hour backstop for genuinely ancient data,
 deliberately set well above the lag you accumulate while away — a weekly window that still resets

@@ -56,17 +56,22 @@ function autoBarWidth(columns: number): number {
  *   该段的显示字符串。
  */
 function renderWindow(win: MeterWindow, config: Config, variant: Variant, now: number): string {
-  const color = levelColor(win.percent, win.severity, config, config.colors.usage);
+  // percent 为 null 表示窗口已跨过重置点、新读数还没拿到：
+  // 不显示任何数字（旧读数是可证伪的错误），画全空条 + ? 占位，用暗色降噪
+  const color =
+    win.percent === null
+      ? config.colors.label
+      : levelColor(win.percent, win.severity, config, config.colors.usage);
   const parts: string[] = [paint(win.label, config.colors.label)];
 
   if (variant.barWidth > 0) {
-    const bar = splitBar(win.percent, variant.barWidth, config);
+    const bar = splitBar(win.percent ?? 0, variant.barWidth, config);
     parts.push(paint(bar.filled, color) + paint(bar.empty, config.colors.barEmpty));
   }
 
   // 缓存来源且已经明显陈旧时，用 ~ 前缀表明这是个近似值
   const isStale = win.source === 'cache' && win.ageMs !== null && win.ageMs > config.staleWarnMs;
-  parts.push(paint((isStale ? '~' : '') + win.percent + '%', color));
+  parts.push(paint(win.percent === null ? '?' : (isStale ? '~' : '') + win.percent + '%', color));
 
   if (variant.countdown && config.showResetCountdown && win.resetAt) {
     const remaining = formatDuration(win.resetAt.getTime() - now);
@@ -99,7 +104,8 @@ function selectWindows(windows: MeterWindow[], max: number): MeterWindow[] {
   if (max >= windows.length) return windows;
   const rank = (win: MeterWindow): number => {
     const severityBoost = win.severity === 'critical' ? 200 : win.severity === 'warning' ? 100 : 0;
-    return severityBoost + win.percent;
+    // ? 占位（percent 为 null）没有紧急度可言，排在最后被丢弃
+    return severityBoost + (win.percent ?? 0);
   };
   const keep = new Set(
     [...windows].sort((a, b) => rank(b) - rank(a)).slice(0, max),

@@ -22,7 +22,7 @@ const FIXTURES = join(ROOT, 'tests', 'fixtures');
  * getClaudeJsonPath() 的规则是"配置目录同级的 .json 文件"，所以配置目录叫 X/.claude 时，
  * 缓存文件就是 X/.claude.json。
  */
-function makeConfigDir({ usageFixture = 'claude-json-full.json', meterConfig = null } = {}) {
+function makeConfigDir({ usageFixture = 'claude-json-full.json', meterConfig = null, scopedResetInPast = false } = {}) {
   const base = mkdtempSync(join(tmpdir(), 'claudemeter-it-'));
   const configDir = join(base, '.claude');
   mkdirSync(join(configDir, 'claudemeter'), { recursive: true });
@@ -33,6 +33,10 @@ function makeConfigDir({ usageFixture = 'claude-json-full.json', meterConfig = n
     const limits = raw.cachedUsageUtilization.utilization.limits ?? [];
     for (const l of limits) {
       if (l.resets_at) l.resets_at = new Date(Date.now() + 86_400_000).toISOString();
+      // 模拟"周重置点已过、缓存尚未刷新"：按模型窗口的重置时刻改到过去
+      if (scopedResetInPast && l.kind === 'weekly_scoped') {
+        l.resets_at = new Date(Date.now() - 3_600_000).toISOString();
+      }
     }
     writeFileSync(configDir + '.json', JSON.stringify(raw));
   }
@@ -83,6 +87,17 @@ test('完整输入下渲染两行，且四段都在', () => {
     assert.match(lines[1], /5H .*24%/);
     assert.match(lines[1], /WEEK .*41%/, '周用量必须显示，不设任何百分比门槛');
     assert.match(lines[1], /FABLE .*94%/, 'Fable 必须显示 —— 这是本插件的立项理由');
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('周重置点已过而缓存未刷新时，FABLE 显示 ? 占位而不是消失或显示旧百分比', () => {
+  const { base, configDir } = makeConfigDir({ scopedResetInPast: true });
+  try {
+    const { lines } = run(BASE_STDIN, { configDir });
+    assert.match(lines[1], /FABLE \S* ?\?/, 'FABLE 段必须以 ? 占位存在');
+    assert.ok(!/FABLE[^ ]* [^ ]*94/.test(lines[1]), '已作废的 94% 不允许出现');
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

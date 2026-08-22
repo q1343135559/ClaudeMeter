@@ -66,16 +66,19 @@ function isVisible(win: MeterWindow, config: Config): boolean {
 }
 
 /**
- * 判断一条来自缓存的窗口是否已经不可信。
+ * 对一条来自缓存的窗口做可信度裁决。
  *
- * 两条规则，分工不同，不能互相替代：
- *   1. resets_at 已经早于当前时刻 —— 窗口已经翻篇，缓存里那个百分比是**可证伪的错误**，
- *      无论数据多新都必须丢弃。这一条对 5 小时窗口尤其关键：缓存动辄陈旧十几分钟，
- *      经常正好跨过重置点。
- *   2. 数据年龄超过 staleMaxMs —— 纯兜底，拦的是"旧到连大致参考价值都没有"的数据。
- *      注意它只会咬到长窗口：5 小时窗口的缓存一旦超过 5 小时，规则 1 早就拦掉了。
- *      所以这个阈值定得过短会适得其反 —— 把一个重置时刻还在明天、只是读数偏旧的
- *      周窗口整段抹掉，比带着年龄标记显示出来更糟。
+ * 三种结果，对应三条规则：
+ *   - 'drop'（年龄超过 staleMaxMs）：纯兜底，拦"旧到连大致参考价值都没有"的数据。
+ *     注意它只会咬到长窗口：5 小时窗口的缓存一旦超过 5 小时，下一条规则早就拦掉了。
+ *   - resets_at 已经早于当前时刻 —— 窗口已经翻篇，缓存里那个百分比是**可证伪的错误**，
+ *     无论数据多新都不能显示。但"不能显示旧读数"不等于"整段消失"：
+ *       - 按模型窗口（scoped:*）返回 'rollover'：它没有任何其它数据来源
+ *         （statusline stdin 只有 five_hour / seven_day），而 Claude Code 的缓存
+ *         只在 /usage 等入口被动刷新，跨过周重置点后可能一连几天都不更新。
+ *         直接丢弃会让 FABLE 无声消失；改为显示 ? 占位，明确告知"已重置、读数未知"。
+ *       - 其余窗口返回 'drop'：5H / WEEK 有 stdin 实时兜底，占位只会添乱。
+ *   - 'keep'：数据可信，照常渲染。
  *
  * Args:
  *   win: 待判断的窗口。
@@ -83,13 +86,15 @@ function isVisible(win: MeterWindow, config: Config): boolean {
  *   now: 当前时刻（毫秒）。
  *
  * Returns:
- *   应当丢弃时返回 true。
+ *   'keep' 照常显示；'drop' 丢弃；'rollover' 转为 ? 占位。
  */
-function isCacheWindowExpired(win: MeterWindow, config: Config, now: number): boolean {
-  if (win.source !== 'cache') return false;
-  if (win.ageMs !== null && win.ageMs > config.staleMaxMs) return true;
-  if (win.resetAt !== null && win.resetAt.getTime() <= now) return true;
-  return false;
+function judgeCacheWindow(win: MeterWindow, config: Config, now: number): 'keep' | 'drop' | 'rollover' {
+  if (win.source !== 'cache') return 'keep';
+  if (win.ageMs !== null && win.ageMs > config.staleMaxMs) return 'drop';
+  if (win.resetAt !== null && win.resetAt.getTime() <= now) {
+    return win.key.startsWith('scoped:') ? 'rollover' : 'drop';
+  }
+  return 'keep';
 }
 
 /**
@@ -120,7 +125,14 @@ export function mergeWindows(
   const byKey = new Map<string, MeterWindow>();
 
   for (const win of snapshot?.windows ?? []) {
-    if (isCacheWindowExpired(win, config, now)) continue;
+    const verdict = judgeCacheWindow(win, config, now);
+    if (verdict === 'drop') continue;
+    if (verdict === 'rollover') {
+      // 已跨过重置点的按模型窗口：旧 percent / severity 已作废，重置时刻也未知
+      // （不臆造 +7 天），只保留标签与年龄，渲染层据此画出 ? 占位
+      byKey.set(win.key, { ...win, percent: null, severity: null, resetAt: null });
+      continue;
+    }
     byKey.set(win.key, win);
   }
 

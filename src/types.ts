@@ -145,8 +145,12 @@ export interface MeterWindow {
   key: string;
   /** 状态栏上显示的短标签，例如 5H / WEEK / FABLE。 */
   label: string;
-  /** 已用百分比，0-100。 */
-  percent: number;
+  /**
+   * 已用百分比，0-100。
+   * null 表示"窗口已跨过重置点、缓存里的旧读数已作废、新读数尚未拿到"——
+   * 渲染层此时显示 ? 占位而不是任何数字（只发生在按模型的缓存窗口上）。
+   */
+  percent: number | null;
   /** 窗口重置时刻，拿不到就是 null（此时不显示倒计时）。 */
   resetAt: Date | null;
   /** Anthropic 给出的严重度，没有则为 null，配色回退到本地阈值。 */

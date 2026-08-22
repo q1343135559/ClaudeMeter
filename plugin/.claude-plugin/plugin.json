@@ -2,7 +2,7 @@
   "name": "claudemeter",
   "displayName": "ClaudeMeter",
   "description": "Statusline showing context, 5-hour, weekly, and per-model (Fable) usage — reads only local files, no network, no credentials",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": {
     "name": "huangjiajun",
     "url": "https://github.com/q1343135559"
